@@ -1,6 +1,6 @@
-package one.zjh.ldap.utils;
+package com.centerm.cloud.ldap.utils;
 
-import one.zjh.ldap.common.Constants;
+import com.centerm.cloud.ldap.common.Constants;
 import org.springframework.ldap.core.DirContextOperations;
 import org.springframework.ldap.support.LdapUtils;
 import org.springframework.util.StringUtils;
@@ -22,7 +22,6 @@ import java.util.concurrent.ConcurrentHashMap;
 public class LdapUtil {
     public static final String OU_NAME = "ou";
     public static final String CN_NAME = "cn";
-    public static final String DC_NAME = "dc";
 
     public static final String GENERALIZED_TIME_STYLE = "yyyyMMddHHmmss";
     public static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern(GENERALIZED_TIME_STYLE);
@@ -47,9 +46,9 @@ public class LdapUtil {
 
         try {
             LdapName ldapName = new LdapName(dn);
-            List<Rdn> rdnList = new ArrayList<>();
+            List<Rdn> rdnList = new ArrayList<Rdn>();
             for (Rdn rdn : ldapName.getRdns()) {
-                if (DC_NAME.equalsIgnoreCase(rdn.getType())) {
+                if ("DC".equalsIgnoreCase(rdn.getType())) {
                     continue;
                 }
                 rdnList.add(rdn);
@@ -75,7 +74,7 @@ public class LdapUtil {
             LdapName ldapName = new LdapName(dn);
             List<String> dcList = new ArrayList<String>();
             for (Rdn rdn : ldapName.getRdns()) {
-                if (DC_NAME.equalsIgnoreCase(rdn.getType())) {
+                if ("DC".equalsIgnoreCase(rdn.getType())) {
                     dcList.add(rdn.getValue().toString());
                 }
             }
@@ -99,9 +98,9 @@ public class LdapUtil {
 
         try {
             LdapName ldapName = new LdapName(dn);
-            List<Rdn> rdnList = new ArrayList<>();
+            List<Rdn> rdnList = new ArrayList<Rdn>();
             for (Rdn rdn : ldapName.getRdns()) {
-                if (OU_NAME.equalsIgnoreCase(rdn.getType())) {
+                if ("OU".equalsIgnoreCase(rdn.getType())) {
                     rdnList.add(rdn);
                 }
             }
@@ -159,14 +158,17 @@ public class LdapUtil {
         }
 
         String[] domains = domain.split("\\.");
-        StringBuilder builder = new StringBuilder();
-        for (String s : domains) {
-            builder.append("DC=");
-            builder.append(s);
-            builder.append(",");
+        if (domains != null) {
+            StringBuilder builder = new StringBuilder();
+            for (int i = 0; i < domains.length; i++) {
+                builder.append("DC=");
+                builder.append(domains[i]);
+                builder.append(",");
+            }
+            builder.deleteCharAt(builder.length() - 1);
+            return builder.toString();
         }
-        builder.deleteCharAt(builder.length() - 1);
-        return builder.toString();
+        return null;
     }
 
     /**
@@ -175,6 +177,23 @@ public class LdapUtil {
      * @param objectGUID
      */
     public static String convertObjectGUID(byte[] objectGUID) {
+        return getGuidString(objectGUID);
+    }
+
+    /**
+     * 将二进制的objectGUID乱码字符串转换为字符串
+     *
+     * @param strObjectGUID
+     */
+    public static String convertObjectGUID(String strObjectGUID) {
+        if (StringUtils.isEmpty(strObjectGUID)) {
+            return "";
+        }
+        byte[] objectGUID = strObjectGUID.getBytes();
+        return getGuidString(objectGUID);
+    }
+
+    private static String getGuidString(byte[] objectGUID) {
         StringBuilder sb = new StringBuilder();
         sb.append(addLeadingZero((int) objectGUID[3] & 0xFF));
         sb.append(addLeadingZero((int) objectGUID[2] & 0xFF));
